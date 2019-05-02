@@ -20,8 +20,6 @@ class Cache{
 
 	public function startBuffer(){
 
-		
-		
 		$REDIRECT_URL = isset($_SERVER['REDIRECT_URL'])?$_SERVER['REDIRECT_URL']:null;
 		$REQUEST_URI = isset($_SERVER['REQUEST_URI'])?$_SERVER['REQUEST_URI']:null;
 		$SCRIPT_NAME = isset($_SERVER['SCRIPT_NAME'])?$_SERVER['SCRIPT_NAME']:null;
@@ -40,8 +38,7 @@ class Cache{
 
 		$baseDir = dirname($SCRIPT_NAME);
 
-		$domain = $protocol.'://'.preg_replace('#//#m', '/', $SERVER_NAME.'/'.$baseDir.'/');	
-
+		$domain = $protocol.'://'.preg_replace('#//#m', '/', $SERVER_NAME.'/'.$baseDir.'/');
 
 		$page = str_replace($baseDir, '', $REQUEST_URI); 
 		if($page == '' || $page == '/')$page='home';
@@ -55,20 +52,18 @@ class Cache{
 			$this->cleanCache();
 		}
 
-
 		ob_start();
 	}
 
 	public function cleanCache(){
-		$cacheDir = $this->config['cacheDir'];
+		$cacheDir = isset($this->config['cacheDir'])?$this->config['cacheDir']:getcwd().DIRECTORY_SEPARATOR.'cache';
 		$page = $this->page;
-		$sourceDir = $this->config['sourceDir'];
+		$sourceDir = isset($this->config['sourceDir'])?$this->config['sourceDir']:getcwd();
 		$this->sourceDir = $sourceDir;
 
 		
 		File::rmdir($cacheDir);
 
-		
 	}
 
 	public function endBuffer(){
@@ -79,53 +74,38 @@ class Cache{
 		$this->content = $content;
 	}
 
+	
+
 	public function savePage($content = '',$extension = null){
 
-		$cacheDir = $this->config['cacheDir'];
+		$cacheDir = isset($this->config['cacheDir'])?$this->config['cacheDir']:getcwd().DIRECTORY_SEPARATOR.'cache';
 		$page = $this->page;
 
-	
 		$filenamePre = $cacheDir.DIRECTORY_SEPARATOR.$page;
-		
-		// if($extension == '' || $extension == 'html')
-			// $filename = $cacheDir.DIRECTORY_SEPARATOR.$page.'.html';
-		// else
-			$filename = $cacheDir.DIRECTORY_SEPARATOR.$page;
+	
+		$filename = $cacheDir.DIRECTORY_SEPARATOR.$page;
 
 		$dir = dirname($filename);
 		if(!file_exists($dir)) @mkdir($dir,0777,true);
 
+		if(File::isJson($content))
+			$extension = 'json';
 
-		if($extension == '' || $extension == 'html' || $extension == 'php')
-		$content = '<!-- CacheFy : '.date("Y/m/d H:i:s", time()).' -->'."\n".$content;
+		if($extension == '' || $extension == 'htm' || $extension == 'html' || $extension == 'php')
+		$content = $content."\n".'<!-- CacheFy : '.date("Y/m/d H:i:s", time()).' -->';		
 
 		@file_put_contents($filename,$content);
 		return $content;
 	}
 
 	public function getPage($extension = null){
-		$cacheDir = $this->config['cacheDir'];
+		$cacheDir = isset($this->config['cacheDir'])?$this->config['cacheDir']:getcwd().DIRECTORY_SEPARATOR.'cache';
 		$page = $this->page;
 		$sourceDir = isset($this->config['sourceDir'])?$this->config['sourceDir']:getcwd();		
 		$this->sourceDir = $sourceDir;
-
-		// if($extension != '' && $extension != 'html')
-			$filename = $cacheDir.DIRECTORY_SEPARATOR.$page;
-		// else
-			// $filename = $cacheDir.DIRECTORY_SEPARATOR.$page.'.html';
-
-		/*$filename = str_replace('//', '/', $filename);
-		$filename_lastModified = filemtime($filename);
 		
-		
-		$stat = stat($sourceDir);*/
-		// echo 'Modification time: ' . $stat['mtime']; // will show unix time stamp.
-		// echo 'Size: ' . $stat['size']; // in bytes.
-
-		/*if( $stat['mtime'] > $filename_lastModified){
-			return false;
-		}*/
-		
+		$filename = $cacheDir.DIRECTORY_SEPARATOR.$page;
+	
 		if(file_exists($filename)){			
 			return file_get_contents($filename);
 		}else
@@ -144,7 +124,7 @@ class Cache{
 		 $file_ext = array_filter($file_ext);
 
 		 return end($file_ext);
-		
+	
 	}
 
 	public function flush(){
@@ -155,8 +135,6 @@ class Cache{
 		
 		$extension = $this->getExtension($REQUEST_URI);
 		
-
-
 		$spider = new Spider();
 		
 		$resultPage = $this->getPage($extension);
@@ -170,20 +148,20 @@ class Cache{
 			$content = $spider->run($content,$this->domain,$this->config);
 
 
-			if($this->config['minifyHtml'] === true && ( $extension == 'html' || $extension == '' || $extension == 'php') )
+			if(isset($this->config['minifyHtml']) && $this->config['minifyHtml'] === true && ( $extension == 'html' || $extension == '' || $extension == 'php') )
                 $content = Minify::html($content);
 
-            if($this->config['minifyCss'] === true &&  $extension == 'css')
+            if(isset($this->config['minifyCss']) && $this->config['minifyCss'] === true &&  $extension == 'css')
                 $content = Minify::css($content);
 
-            if($this->config['minifyJs'] === true &&  $extension == 'js')
+            if(isset($this->config['minifyJs']) && $this->config['minifyJs'] === true &&  $extension == 'js')
                 $content = Minify::js($content);
 
-            if($this->config['optimizeimage'] === true ){
+            if(isset($this->config['optimizeimage']) && $this->config['optimizeimage'] === true ){
             	$dirCacheImageOpt = dirname($this->config['cacheDir']).DIRECTORY_SEPARATOR."optimage".DIRECTORY_SEPARATOR;
-            	// mkdir($dirCacheImageOpt,0777,true);
+            
             	$pageOpt = $this->domain;
-            	// echo $pageOpt;
+            	
             	$mobileoptimizeString = 'desktop';
 
             	
@@ -234,7 +212,7 @@ class Cache{
 		}
 		
 		die($content);
-		// echo $content;
+		
 
 	}
 }
