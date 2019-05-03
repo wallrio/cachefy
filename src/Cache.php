@@ -40,8 +40,11 @@ class Cache{
 
 		$domain = $protocol.'://'.preg_replace('#//#m', '/', $SERVER_NAME.'/'.$baseDir.'/');
 
-		$page = str_replace($baseDir, '', $REQUEST_URI); 
-		if($page == '' || $page == '/')$page='home';
+		$page = str_replace($baseDir, '_', $REQUEST_URI); 
+		$page_array = explode('_', $page);
+		$page_array = array_filter($page_array);
+		$page = implode('_', $page_array);
+		if($page == '_' || $page == '' || $page == '/')$page='home';
 
 		$this->page = $page;
 		$this->domain = $domain;
@@ -79,11 +82,15 @@ class Cache{
 	public function savePage($content = '',$extension = null){
 
 		$cacheDir = isset($this->config['cacheDir'])?$this->config['cacheDir']:getcwd().DIRECTORY_SEPARATOR.'cache';
+		
 		$page = $this->page;
 
 		$filenamePre = $cacheDir.DIRECTORY_SEPARATOR.$page;
 	
 		$filename = $cacheDir.DIRECTORY_SEPARATOR.$page;
+
+		
+		
 
 		$dir = dirname($filename);
 		if(!file_exists($dir)) @mkdir($dir,0777,true);
@@ -139,8 +146,24 @@ class Cache{
 		
 		$resultPage = $this->getPage($extension);
 
+		$page = $this->page;
+		$page_array = explode('_', $page);
+		$page_array = array_filter($page_array);
+		$page = implode('_', $page_array);
+		$pagenocache = isset($this->config['pagenocache'])?$this->config['pagenocache']:array();
+		$ifCacheExecute = true;
+		foreach ($page_array as $key => $value) {		
+			if( in_array( $value, $pagenocache)){				
+				$ifCacheExecute = false;
+			}
+		}
 		
-		if($resultPage){
+		if($ifCacheExecute === false){
+			die($this->content);
+			return;
+		}
+
+		if($resultPage){			
 			$content = $resultPage;		
 		}else{
 
